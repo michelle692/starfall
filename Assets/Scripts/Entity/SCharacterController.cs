@@ -10,21 +10,21 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
 
     [Header("Camera Info")] public Transform orbitPoint;
 
-    [Header("Health")] [SerializeField] private int health;
-    
+    [Header("Health")][SerializeField] private int health;
+
     [Header("Standard Movement")]
     public float maxStableMoveSpeed = 10f;
     public float stableMovementSharpness = 15f;
     [Tooltip("The speed of the interpolation between the desired look direction and the character's current forward orientation.")]
     public float orientationSharpness = 10f;
     public OrientationMethod orientationMethod = OrientationMethod.TowardsMovement;
-    
+
     [Header("Air Movement")]
     public float maxAirMoveSpeed = 15f;
     public float airAccelerationSpeed = 15f;
     public float drag = 0.1f;
 
-    [Header("Jumping")] 
+    [Header("Jumping")]
     public bool allowJumpingWhenSliding = true;
     public bool canDoubleJump = false;
     public float jumpUpSpeed = 10f;
@@ -33,9 +33,9 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
     public float jumpPreGroundingGraceTime = 0f;
     public float jumpPostGroundingGraceTime = 0f;
 
-    [Header("Weapons")] [SerializeField] private RangedWeapon _weapon;
+    [Header("Weapons")][SerializeField] private RangedWeapon _weapon;
     [Range(0, 1)] public float aimingMovementPenalty;
-    [SerializeField] 
+    [SerializeField]
     [Tooltip("How many seconds should the character lock into 'towards camera' orientation after firing from the hip?")]
     private float secondsToLockShootingOrientation;
 
@@ -45,7 +45,8 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
 
     //The character state stuff isn't used yet, but it will probably be useful when it comes to stuns, abilities, etc.
     public CharacterState CurrentCharacterState { get; set; }
-    
+
+    //Moving and jumping
     private Vector3 _moveInputVector;
     private Vector3 _lookInputVector;
     private float _timeSinceJumpRequested;
@@ -54,7 +55,7 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
     private bool _jumpConsumed = false;
     private float _timeSinceLastAbleToJump;
     private bool _doubleJumpConsumed;
-    
+
     //Firing stuff
     private bool _isAiming;
     private bool _isFiring;
@@ -64,10 +65,10 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
     private Camera _cam;
     private Vector3 _target;
     private bool _reloadedThisFrame;
-    
+
     //Health
     private int _maxHealth;
-    
+
 
     public enum CharacterState
     {
@@ -79,32 +80,33 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
         TowardsCamera,
         TowardsMovement,
     }
-    
+
     void Start()
     {
         motor.CharacterController = this;
         _cam = Camera.main;
         _maxHealth = health;
     }
-    
+
     void Update()
     {
-        switch (_isAiming)
+        UpdateWeapon();
+    }
+
+    void UpdateWeapon()
+    {
+        //First time aiming
+        if (_isAiming && !_wasAimingLastFrame)
         {
-            case true:
-                if (!_wasAimingLastFrame)
-                {
-                    AimDown();
-                }
-                break;
-            case false:
-                if (_wasAimingLastFrame)
-                {
-                    AimUp();
-                }
-                break;
+            AimDown();
         }
 
+        //Stopped aiming
+        if (!_isAiming && _wasAimingLastFrame)
+        {
+            AimUp();
+        }
+           
         if (_isFiring)
         {
             RequestFirePrimary();
@@ -115,7 +117,6 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
             _weapon.Reload();
         }
 
-        //Update old stuff
         _wasAimingLastFrame = _isAiming;
         _wasFiringLastFrame = _isFiring;
     }
@@ -136,6 +137,7 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
     
     public void RequestFirePrimary()
     {
+        //Waiting to lock in target
         if (!_weapon.GetReloading())
         {
             StartCoroutine(OrientationTimer(secondsToLockShootingOrientation));
@@ -150,6 +152,7 @@ public class SCharacterController : MonoBehaviour, ICharacterController, IDamage
         if (!_isAiming && Time.time - _weapon.GetTimeLastFired() >= duration - .1f) orientationMethod = OrientationMethod.TowardsMovement;
     }
 
+    //The player class that has a reference to this object is calling SetInputs()
     public void SetInputs(ref PlayerCharacterInputs inputs)
     {
         //Just sets the desired move vector, received from Player, and clamps it's magnitude to not exceed 1.
