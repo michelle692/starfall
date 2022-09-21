@@ -10,11 +10,20 @@ public class GameManager : MonoBehaviour
 
     [Header("Player Data")] public PlayerData playerData;
 
+    [Header("Initial Player")] public Kuze kuze;
+
     [Header("Spawn Point")] public Transform spawnPoint;
     
     private Player _player;
     private GameObject _playerCharacterGameObject;
     private GameObject _playerCameraGameObject;
+
+
+    // TODO(mish): have SCharacter main player and set up a function to switch
+    // between different players
+    private SCharacter _currentPlayer;
+    //private Kuze _kuze;
+
 
     //UI
     private Crosshair _crosshair;
@@ -62,28 +71,37 @@ public class GameManager : MonoBehaviour
             Quaternion.identity);
         
         //Set up Player
-        _player = gameObject.AddComponent<Player>();
+        //_player = gameObject.AddComponent<Player>();
         var c = _playerCharacterGameObject.GetComponent<SCharacterController>();
         var cam = _playerCameraGameObject.GetComponent<ExampleCharacterCamera>();
         var orbitPoint = c.orbitPoint;
-        if (c != null && cam != null)
-        {
-            _player.SetCharacter(c);
-            _player.orbitCamera = cam;
-            _player.cameraFollowPoint = orbitPoint;
-        }
-        else
-        {
-            Debug.LogWarning("Something went wrong in GameManager's Player setup! One or more essential player components are not properly configured.");
-        }
-        _player.playerFiringLayerMask = playerData.playerFiringLayerMask;
-        
+        //if (c != null && cam != null)
+        //{
+        //    _player.SetCharacter(c);
+        //    _player.orbitCamera = cam;
+        //    _player.cameraFollowPoint = orbitPoint;
+        //}
+        //else
+        //{
+        //    Debug.LogWarning("Something went wrong in GameManager's Player setup! One or more essential player components are not properly configured.");
+        //}
+        //_player.playerFiringLayerMask = playerData.playerFiringLayerMask;
+
         //Set up event listeners
-        _player.onPlayerReloadStart.AddListener(_reloadBar.AnimateReloadBar);
-        _player.onPlayerReloadComplete.AddListener(_ammoCounter.UpdateAmmoCounter);
-        _player.onPlayerFire.AddListener(_ammoCounter.UpdateAmmoCounter);
-        
-        
+        //_player.onPlayerReloadStart.AddListener(_reloadBar.AnimateReloadBar);
+        //_player.onPlayerReloadComplete.AddListener(_ammoCounter.UpdateAmmoCounter);
+        //_player.onPlayerFire.AddListener(_ammoCounter.UpdateAmmoCounter);
+
+
+        kuze.orbitCamera = cam;
+
+        kuze.playerFiringLayerMask = playerData.playerFiringLayerMask;
+
+        //Set up event listeners
+        kuze.onPlayerReloadStart.AddListener(_reloadBar.AnimateReloadBar);
+        kuze.onPlayerReloadComplete.AddListener(_ammoCounter.UpdateAmmoCounter);
+        kuze.onPlayerFire.AddListener(_ammoCounter.UpdateAmmoCounter);
+
     }
 
     private void Start()

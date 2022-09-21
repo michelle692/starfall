@@ -18,6 +18,6 @@ MonoBehaviour:
   playerFiringLayerMask:
     serializedVersion: 2
     m_Bits: 137
-  weaponSpread: 0.049990267
-  currentAmmo: 21
+  weaponSpread: 0.05
+  currentAmmo: 32
   totalAmmo: 32

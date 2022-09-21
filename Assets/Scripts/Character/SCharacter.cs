@@ -6,7 +6,7 @@ using UnityEngine.Events;
 
 public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharacterController
 {
-    private KinematicCharacterMotor motor;
+    public KinematicCharacterMotor motor;
 
     [Header("Camera Info")] public Transform orbitPoint;
 
@@ -61,7 +61,6 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     private bool _wasAimingLastFrame = false;
     private bool _wasFiringLastFrame = false;
     private Vector3 _screenCenterPoint = new Vector2(Screen.width / 2f, Screen.height / 2f);
-    private Camera _cam;
     private Vector3 _target;
     private bool _reloadedThisFrame;
 
@@ -75,9 +74,8 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
 	{
         //TODO(mish): describe what this does
         motor.CharacterController = this;
-        _cam = Camera.main;
         _maxHealth = health;
-        InitAbility();
+        StartCharacter();
     }
 
 	void Update()
@@ -90,26 +88,28 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
 
     protected abstract void HandleInputs();
 
+    protected abstract void StartCharacter();
+
     protected abstract void UpdateCharacter();
 
     //TODO: determine ability inputs and invoke main ability and secondary
     //abilty within this function
-    void UpdateAbility()
+    public void UpdateAbility()
     {
     
     }
 
-    void InitAbility()
+    public void InitAbility()
     {
 
     }
 
-    void MainAbility()
+    public void MainAbility()
     {
 
     }
 
-    void SecondaryAbility()
+    public void SecondaryAbility()
     {
 
     }
@@ -166,7 +166,7 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         if (!_isAiming && Time.time - _weapon.GetTimeLastFired() >= duration - .1f) orientationMethod = OrientationMethod.TowardsMovement;
     }
 
-    void Damage(int damage)
+    public void Damage(int damage)
     {
         if (health <= 0) return;
         health -= damage;
@@ -176,13 +176,13 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         }
     }
 
-	void Heal(int healing)
+	public void Heal(int healing)
     {
         health += healing;
         if (health > _maxHealth) health = _maxHealth;
     }
 
-	void Kill()
+	public void Kill()
     {
         var rb = gameObject.AddComponent<Rigidbody>();
         rb.AddForce(Random.insideUnitSphere * 5f, ForceMode.Impulse);
@@ -401,5 +401,47 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     {
 
     }
+
+    public void SetInputs(ref PlayerCharacterInputs inputs)
+    {
+        //Just sets the desired move vector, received from Player, and clamps it's magnitude to not exceed 1.
+        _moveInputVector = Vector3.ClampMagnitude(new Vector3(inputs.MoveAxisRight, 0f, inputs.MoveAxisForward), 1f);
+
+        // Calculate camera direction and rotation on the character plane
+        // I don't fully understand this yet.
+        Vector3 cameraPlanarDirection = Vector3.ProjectOnPlane(inputs.CameraRotation * Vector3.forward, motor.CharacterUp).normalized;
+        if (cameraPlanarDirection.sqrMagnitude == 0f)
+        {
+            cameraPlanarDirection = Vector3.ProjectOnPlane(inputs.CameraRotation * Vector3.up, motor.CharacterUp).normalized;
+        }
+        Quaternion cameraPlanarRotation = Quaternion.LookRotation(cameraPlanarDirection, motor.CharacterUp);
+
+        //Sets this local character's move and look inputs to what we've found.
+        _moveInputVector = cameraPlanarRotation * _moveInputVector;
+
+        //Allows setting if the character should look in the direction of the camera, e.g aiming, or in the direction of movement for general navigation.
+        switch (orientationMethod)
+        {
+            case OrientationMethod.TowardsCamera:
+                _lookInputVector = cameraPlanarDirection;
+                break;
+            case OrientationMethod.TowardsMovement:
+                _lookInputVector = _moveInputVector.normalized;
+                break;
+        }
+
+        if (inputs.JumpDown)
+        {
+            _timeSinceJumpRequested = 0f;
+            _jumpRequested = true;
+        }
+
+        //Firing
+        _isAiming = inputs.Aim;
+        _isFiring = inputs.Primary;
+        _target = inputs.Target;
+        _reloadedThisFrame = inputs.Reload;
+    }
+
 }
 
