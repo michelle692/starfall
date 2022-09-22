@@ -45,24 +45,26 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     public List<Collider> ignoredColliders = new List<Collider>();
     public Vector3 gravity = new Vector3(0, -30f, 0);
 
+    // TODO(tbd): Moving and jumping should be moved to some struct.
     //Moving and jumping
-    private Vector3 _moveInputVector;
-    private Vector3 _lookInputVector;
-    private float _timeSinceJumpRequested;
-    private bool _jumpRequested;
+    protected Vector3 moveInputVector;
+    protected Vector3 lookInputVector;
+    protected float timeSinceJumpRequested;
+    protected bool jumpRequested;
     private bool _jumpedThisFrame;
     private bool _jumpConsumed = false;
     private float _timeSinceLastAbleToJump;
     private bool _doubleJumpConsumed;
 
+    // TODO(tbd): Firing stuff HAS to be moved to some struct.
     //Firing stuff
-    private bool _isAiming;
-    private bool _isFiring;
-    private bool _wasAimingLastFrame = false;
+    protected bool isAiming;
+    protected bool isFiring;
+    protected bool wasAimingLastFrame = false;
     private bool _wasFiringLastFrame = false;
     private Vector3 _screenCenterPoint = new Vector2(Screen.width / 2f, Screen.height / 2f);
-    private Vector3 _target;
-    private bool _reloadedThisFrame;
+    protected Vector3 target;
+    protected bool reloadedThisFrame;
 
     public enum OrientationMethod
     {
@@ -117,7 +119,7 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     void UpdateWeapon()
     {
         //Aim down: First time aiming
-        if (_isAiming && !_wasAimingLastFrame)
+        if (isAiming && !wasAimingLastFrame)
         {
             orientationMethod = OrientationMethod.TowardsCamera;
             maxStableMoveSpeed *= aimingMovementPenalty;
@@ -125,29 +127,27 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         }
 
         //Aim up: Stopped aiming
-        if (!_isAiming && _wasAimingLastFrame)
+        if (!isAiming && wasAimingLastFrame)
         {
             orientationMethod = OrientationMethod.TowardsMovement;
             maxStableMoveSpeed /= aimingMovementPenalty;
             _weapon.SetAiming(false);
         }
 
-        if (_isFiring)
+        if (isFiring)
         {
             RequestFirePrimary();
         }
 
-        if (_reloadedThisFrame && _weapon)
+        if (reloadedThisFrame && _weapon)
         {
             _weapon.Reload();
         }
 
-        _wasAimingLastFrame = _isAiming;
-        _wasFiringLastFrame = _isFiring;
+        wasAimingLastFrame = isAiming;
+        _wasFiringLastFrame = isFiring;
     }
-
-    //TODO(mish): implement focus lock delay and shoot delay so it doesn't pause
-    //the code 
+   
     public void RequestFirePrimary()
     {
         //Waiting to lock in target
@@ -158,12 +158,11 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         //_weapon.RequestFire(_target, _wasFiringLastFrame);
     }
 
-    //TODO(mish): depricate this later
     IEnumerator OrientationTimer(float duration)
     {
         orientationMethod = OrientationMethod.TowardsCamera;
         yield return new WaitForSeconds(duration);
-        if (!_isAiming && Time.time - _weapon.GetTimeLastFired() >= duration - .1f) orientationMethod = OrientationMethod.TowardsMovement;
+        if (!isAiming && Time.time - _weapon.GetTimeLastFired() >= duration - .1f) orientationMethod = OrientationMethod.TowardsMovement;
     }
 
     public void Damage(int damage)
@@ -197,10 +196,10 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     //These functions can be overridden in subclasses for more flexibility
     public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
     {
-        if (_lookInputVector.sqrMagnitude > 0f && orientationSharpness > 0f)
+        if (lookInputVector.sqrMagnitude > 0f && orientationSharpness > 0f)
         {
             // Smoothly interpolate from current to target look direction
-            Vector3 smoothedLookInputDirection = Vector3.Slerp(motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-orientationSharpness * deltaTime)).normalized;
+            Vector3 smoothedLookInputDirection = Vector3.Slerp(motor.CharacterForward, lookInputVector, 1 - Mathf.Exp(-orientationSharpness * deltaTime)).normalized;
 
             // Set the current rotation (which will be used by the KinematicCharacterMotor)
             currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, motor.CharacterUp);
@@ -224,9 +223,9 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
             currentVelocity = motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) * currentVelocityMagnitude;
 
             //Gets the vector for horizontal movement according to the upward orientation of the character, useful for slopes or the char being tilted.
-            Vector3 inputRight = Vector3.Cross(_moveInputVector, motor.CharacterUp);
+            Vector3 inputRight = Vector3.Cross(moveInputVector, motor.CharacterUp);
             Vector3 reorientedInput = Vector3.Cross(effectiveGroundNormal, inputRight).normalized *
-                                      _moveInputVector.magnitude;
+                                      moveInputVector.magnitude;
             Vector3 targetMovementVelocity = reorientedInput * maxStableMoveSpeed;
 
             //Smooth movement velocity
@@ -238,9 +237,9 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         else
         {
             //Calculate air movement parameters, given that some input is being received (attempting to move in air)
-            if (_moveInputVector.sqrMagnitude > 0f)
+            if (moveInputVector.sqrMagnitude > 0f)
             {
-                Vector3 addedVelocity = _moveInputVector * (airAccelerationSpeed * deltaTime);
+                Vector3 addedVelocity = moveInputVector * (airAccelerationSpeed * deltaTime);
                 Vector3 currentVelocityOnInputsPlane = Vector3.ProjectOnPlane(currentVelocity, motor.CharacterUp);
 
                 // Limiting air velocity
@@ -289,9 +288,9 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
         // We have not jumped this frame, (yet)
         _jumpedThisFrame = false;
         // Keep track of the time since last jump was requested
-        _timeSinceJumpRequested += deltaTime;
+        timeSinceJumpRequested += deltaTime;
 
-        if (_jumpRequested)
+        if (jumpRequested)
         {
             if (canDoubleJump)
             {
@@ -302,7 +301,7 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
                     motor.ForceUnground(.1f);
 
                     currentVelocity += (motor.CharacterUp * jumpUpSpeed) - Vector3.Project(currentVelocity, motor.CharacterUp);
-                    _jumpRequested = false;
+                    jumpRequested = false;
                     _doubleJumpConsumed = true;
                     _jumpedThisFrame = true;
                 }
@@ -325,8 +324,8 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
                 // Perform the jump by adding it to the currentVelocity, and set bools appropriately.
                 // WHY does this involve a projection?
                 currentVelocity += (jumpDirection * jumpUpSpeed) - Vector3.Project(currentVelocity, motor.CharacterUp);
-                currentVelocity += (_moveInputVector * jumpScalableForwardSpeed);
-                _jumpRequested = false;
+                currentVelocity += (moveInputVector * jumpScalableForwardSpeed);
+                jumpRequested = false;
                 _jumpConsumed = true;
                 _jumpedThisFrame = true;
             }
@@ -348,9 +347,9 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     public void AfterCharacterUpdate(float deltaTime)
     {
         // Handle jumping pre-ground grace period
-        if (_jumpRequested && _timeSinceJumpRequested > jumpPreGroundingGraceTime)
+        if (jumpRequested && timeSinceJumpRequested > jumpPreGroundingGraceTime)
         {
-            _jumpRequested = false;
+            jumpRequested = false;
         }
 
         if (allowJumpingWhenSliding ? motor.GroundingStatus.FoundAnyGround : motor.GroundingStatus.IsStableOnGround)
@@ -400,47 +399,6 @@ public abstract class SCharacter : MonoBehaviour, IAbility, IDamageable, ICharac
     public void OnDiscreteCollisionDetected(Collider hitCollider)
     {
 
-    }
-
-    public void SetInputs(ref PlayerCharacterInputs inputs)
-    {
-        //Just sets the desired move vector, received from Player, and clamps it's magnitude to not exceed 1.
-        _moveInputVector = Vector3.ClampMagnitude(new Vector3(inputs.MoveAxisRight, 0f, inputs.MoveAxisForward), 1f);
-
-        // Calculate camera direction and rotation on the character plane
-        // I don't fully understand this yet.
-        Vector3 cameraPlanarDirection = Vector3.ProjectOnPlane(inputs.CameraRotation * Vector3.forward, motor.CharacterUp).normalized;
-        if (cameraPlanarDirection.sqrMagnitude == 0f)
-        {
-            cameraPlanarDirection = Vector3.ProjectOnPlane(inputs.CameraRotation * Vector3.up, motor.CharacterUp).normalized;
-        }
-        Quaternion cameraPlanarRotation = Quaternion.LookRotation(cameraPlanarDirection, motor.CharacterUp);
-
-        //Sets this local character's move and look inputs to what we've found.
-        _moveInputVector = cameraPlanarRotation * _moveInputVector;
-
-        //Allows setting if the character should look in the direction of the camera, e.g aiming, or in the direction of movement for general navigation.
-        switch (orientationMethod)
-        {
-            case OrientationMethod.TowardsCamera:
-                _lookInputVector = cameraPlanarDirection;
-                break;
-            case OrientationMethod.TowardsMovement:
-                _lookInputVector = _moveInputVector.normalized;
-                break;
-        }
-
-        if (inputs.JumpDown)
-        {
-            _timeSinceJumpRequested = 0f;
-            _jumpRequested = true;
-        }
-
-        //Firing
-        _isAiming = inputs.Aim;
-        _isFiring = inputs.Primary;
-        _target = inputs.Target;
-        _reloadedThisFrame = inputs.Reload;
     }
 
 }

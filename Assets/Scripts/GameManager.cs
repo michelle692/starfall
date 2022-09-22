@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
     
     public static GameManager Instance { get; private set; }
 
+    // TODO: (ben) Fully depricate player data
     [Header("Player Data")] public PlayerData playerData;
 
     [Header("Initial Player")] public Kuze kuze;
@@ -63,18 +64,18 @@ public class GameManager : MonoBehaviour
         }
 
         //TODO: (ben) Make this safe w/o a spawn point
-        var position = spawnPoint != null ? spawnPoint.position : transform.position;
-        _playerCharacterGameObject = Instantiate(playerData.playerCharacter, position, Quaternion.identity);
-        _playerCameraGameObject = Instantiate(playerData.camera,
-            position - (spawnPoint.forward *
-                        playerData.camera.GetComponent<ExampleCharacterCamera>().DefaultDistance),
-            Quaternion.identity);
-        
+        //var position = spawnPoint != null ? spawnPoint.position : transform.position;
+        //_playerCharacterGameObject = Instantiate(playerData.playerCharacter, position, Quaternion.identity);
+        //_playerCameraGameObject = Instantiate(playerData.camera,
+        //    position - (spawnPoint.forward *
+        //                playerData.camera.GetComponent<ExampleCharacterCamera>().DefaultDistance),
+        //    Quaternion.identity);
+
         //Set up Player
         //_player = gameObject.AddComponent<Player>();
-        var c = _playerCharacterGameObject.GetComponent<SCharacterController>();
-        var cam = _playerCameraGameObject.GetComponent<ExampleCharacterCamera>();
-        var orbitPoint = c.orbitPoint;
+        //var c = _playerCharacterGameObject.GetComponent<SCharacterController>();
+        //var cam = _playerCameraGameObject.GetComponent<ExampleCharacterCamera>();
+        //var orbitPoint = c.orbitPoint;
         //if (c != null && cam != null)
         //{
         //    _player.SetCharacter(c);
@@ -93,11 +94,11 @@ public class GameManager : MonoBehaviour
         //_player.onPlayerFire.AddListener(_ammoCounter.UpdateAmmoCounter);
 
 
-        kuze.orbitCamera = cam;
+        //kuze.orbitCamera = cam;
 
-        kuze.playerFiringLayerMask = playerData.playerFiringLayerMask;
+        //kuze.playerFiringLayerMask = playerData.playerFiringLayerMask;
 
-        //Set up event listeners
+        ////Set up event listeners
         kuze.onPlayerReloadStart.AddListener(_reloadBar.AnimateReloadBar);
         kuze.onPlayerReloadComplete.AddListener(_ammoCounter.UpdateAmmoCounter);
         kuze.onPlayerFire.AddListener(_ammoCounter.UpdateAmmoCounter);
